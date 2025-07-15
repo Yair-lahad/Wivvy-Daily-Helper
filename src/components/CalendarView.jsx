@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import TaskModal from './TaskModal';
 import TaskPool from './TaskPool';
+import TodoList from './TodoList';
+import CurrentDayView from './CurrentDayView';
 import { taskIcons, dayNames, monthNames } from '../assets/consts';
 import { formatDateKey, generateCalendarDays } from '../assets/utils';
 import '../App.css';
@@ -150,100 +152,114 @@ const CalendarView = () => {
           onAddTask={handleAddToPool}
           onDeleteTask={handleDeleteFromPool}
         />
+        <div className="container calendar-layout">
+          <TodoList tasks={tasks} toggleTask={toggleTask} />
+          {/* Calendar Section */}
+          <div className="calendar-container">
+            <div className="calendar-header">
+              <button
+                className="nav-button"
+                onClick={() =>
+                  setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() - 1))
+                }
+              >
+                ←
+              </button>
+              <h2 className="month-title">
+                {monthNames[selectedDate.getMonth()]} {selectedDate.getFullYear()}
+              </h2>
+              <button
+                className="nav-button"
+                onClick={() =>
+                  setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1))
+                }
+              >
+                →
+              </button>
+            </div>
 
-        {/* Calendar Section */}
-        <div className="calendar-container">
-          <div className="calendar-header">
-            <button
-              className="nav-button"
-              onClick={() =>
-                setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() - 1))
-              }
-            >
-              ←
-            </button>
-            <h2 className="month-title">
-              {monthNames[selectedDate.getMonth()]} {selectedDate.getFullYear()}
-            </h2>
-            <button
-              className="nav-button"
-              onClick={() =>
-                setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1))
-              }
-            >
-              →
-            </button>
-          </div>
-
-          <div className="calendar-grid">
-            {/* Weekday Headers */}
-            {dayNames.map(day => (
-              <div key={day} className="day-header">
-                {day}
-              </div>
-            ))}
-
-            {/* Calendar Days */}
-            {calendarDays.map((date, index) => {
-              const dateKey = formatDateKey(date);
-              const dayTasks = tasks[dateKey] || [];
-              const isCurrentMonth = date.getMonth() === selectedDate.getMonth();
-              const isToday = date.toDateString() === new Date().toDateString();
-
-              return (
-                <div
-                  key={index}
-                  className={`calendar-day ${isCurrentMonth ? 'current-month' : 'other-month'} ${isToday ? 'today' : ''
-                    }`}
-                  onClick={() => setShowTaskModal(date)}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    const poolTaskData = e.dataTransfer.getData('text/plain');
-                    if (poolTaskData) {
-                      try {
-                        const poolTask = JSON.parse(poolTaskData);
-                        handleDropTaskOnDate(date, poolTask);
-                      } catch (error) {
-                        console.error('Error parsing dropped task data:', error);
-                      }
-                    }
-                  }}
-                  onDragOver={(e) => e.preventDefault()}
-                >
-                  <div className="day-number">{date.getDate()}</div>
-                  <div className="task-icons">
-                    {dayTasks.slice(0, 3).map(task => {
-                      const IconComponent = taskIcons[task.type]?.icon;
-                      if (!IconComponent) {
-                        console.warn(`No icon found for task type: ${task.type}`);
-                        return null;
-                      }
-
-                      return (
-                        <div
-                          key={task.id}
-                          className={`task-icon ${taskIcons[task.type]?.color || ''} ${task.completed ? 'completed' : ''
-                            }`}
-                          onClick={e => {
-                            e.stopPropagation();
-                            toggleTask(dateKey, task.id);
-                          }}
-                          title={task.title}
-                        >
-                          <IconComponent size={12} />
-                        </div>
-                      );
-                    })}
-                    {dayTasks.length > 3 && (
-                      <div className="task-icon overflow">
-                        <span>+{dayTasks.length - 3}</span>
-                      </div>
-                    )}
-                  </div>
+            <div className="calendar-grid">
+              {/* Weekday Headers */}
+              {dayNames.map(day => (
+                <div key={day} className="day-header">
+                  {day}
                 </div>
-              );
-            })}
+              ))}
+
+              {/* Calendar Days */}
+              {calendarDays.map((date, index) => {
+                const dateKey = formatDateKey(date);
+                const dayTasks = tasks[dateKey] || [];
+                const isCurrentMonth = date.getMonth() === selectedDate.getMonth();
+                const isToday = date.toDateString() === new Date().toDateString();
+
+                return (
+                  <div
+                    key={index}
+                    className={`calendar-day ${isCurrentMonth ? 'current-month' : 'other-month'} ${isToday ? 'today' : ''}`}
+                    onClick={() => { setSelectedDate(date); setShowTaskModal(date) }}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => {
+                      const task = JSON.parse(e.dataTransfer.getData('application/json'));
+                      const newTask = {
+                        ...task,
+                        id: Date.now()
+                      };
+                      const key = formatDateKey(date);
+                      setTasks(prev => ({
+                        ...prev,
+                        [key]: [...(prev[key] || []), newTask]
+                      }));
+                    }}
+                  >
+
+                    <div className="day-number">{date.getDate()}</div>
+                    <div className="task-icons">
+                      {dayTasks.slice(0, 3).map(task => {
+                        const IconComponent = taskIcons[task.type]?.icon;
+                        if (!IconComponent) {
+                          console.warn(`No icon found for task type: ${task.type}`);
+                          return null;
+                        }
+
+                        return (
+                          <div
+                            key={task.id}
+                            className={`task-icon ${taskIcons[task.type]?.color || ''} ${task.completed ? 'completed' : ''
+                              }`}
+                            onClick={e => {
+                              e.stopPropagation();
+                              toggleTask(dateKey, task.id);
+                            }}
+                            title={task.title}
+                          >
+                            <IconComponent size={12} />
+                          </div>
+                        );
+                      })}
+                      {dayTasks.length > 3 && (
+                        <div className="task-icon overflow">
+                          <span>+{dayTasks.length - 3}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
+          <CurrentDayView
+            date={selectedDate}
+            tasks={tasks[formatDateKey(selectedDate)] || []}
+            onToggle={(id) => toggleTask(formatDateKey(selectedDate), id)}
+            onDelete={(id) => {
+              const dateKey = formatDateKey(selectedDate);
+              setTasks(prev => ({
+                ...prev,
+                [dateKey]: prev[dateKey].filter(t => t.id !== id)
+              }));
+            }}
+          />
         </div>
 
         {/* Task Modal */}
