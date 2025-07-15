@@ -6,8 +6,8 @@ function App() {
   return (
     <div className="App">
       <header className="home-header">
-        <img src={logo} className="App-logo" alt="logo" />
         <h1>Wivvy</h1>
+        <img src={logo} className="App-logo" alt="logo" />
         <p>
           Weave your day with clarity
         </p>

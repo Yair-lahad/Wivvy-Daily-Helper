@@ -1,20 +1,9 @@
-import React from 'react';
-import { Briefcase, Dumbbell, BookOpen, Coffee, Heart, Home, Car, ShoppingCart, Users, Music } from 'lucide-react';
+import React, { useRef } from 'react';
+import { taskIcons } from '../assets/consts';
 
-const taskIcons = {
-  work: { icon: Briefcase, color: 'blue' },
-  exercise: { icon: Dumbbell, color: 'green' },
-  study: { icon: BookOpen, color: 'purple' },
-  coffee: { icon: Coffee, color: 'amber' },
-  health: { icon: Heart, color: 'red' },
-  home: { icon: Home, color: 'gray' },
-  travel: { icon: Car, color: 'indigo' },
-  shopping: { icon: ShoppingCart, color: 'pink' },
-  social: { icon: Users, color: 'orange' },
-  music: { icon: Music, color: 'teal' }
-};
 
-const TaskModal = ({ showDate, selectedTaskType, setSelectedTaskType, addTask, onClose }) => {
+const TaskModal = ({ selectedDate, selectedTaskType, setSelectedTaskType, addTask, onClose }) => {
+  const inputRef = useRef();
   return (
     <div className="modal-overlay">
       <div className="modal">
@@ -44,21 +33,27 @@ const TaskModal = ({ showDate, selectedTaskType, setSelectedTaskType, addTask, o
             type="text"
             placeholder="Enter task description"
             className="task-input"
+            ref={inputRef}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && e.target.value.trim()) {
-                addTask(showDate, selectedTaskType, e.target.value.trim());
+              if (e.key === 'Enter' && inputRef.current?.value.trim()) {
+                addTask(selectedDate, selectedTaskType, inputRef.current.value.trim());
+                inputRef.current.value = '';
+                onClose();
               }
             }}
           />
+
         </div>
 
         <div className="modal-buttons">
           <button onClick={onClose} className="cancel-button">Cancel</button>
           <button
             onClick={() => {
-              const input = document.querySelector('.task-input');
-              if (input.value.trim()) {
-                addTask(showDate, selectedTaskType, input.value.trim());
+              const value = inputRef.current?.value.trim();
+              if (value) {
+                addTask(selectedDate, selectedTaskType, value);
+                inputRef.current.value = '';
+                onClose();
               }
             }}
             className="add-button"

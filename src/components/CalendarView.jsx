@@ -4,109 +4,48 @@ import TaskPool from './TaskPool';
 import TodoList from './TodoList';
 import CurrentDayView from './CurrentDayView';
 import { taskIcons, dayNames, monthNames } from '../assets/consts';
-import { formatDateKey, generateCalendarDays } from '../assets/utils';
+import { formatDateKey, generateCalendarDays, loadFromStorage, saveToStorage } from '../assets/utils';
 import '../App.css';
+
 
 const CalendarView = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [selectedTaskType, setSelectedTaskType] = useState('work');
-  const [todoList, setTodoList] = useState(() => {
-    const stored = localStorage.getItem('wivvy-todo-list');
-    return stored ? JSON.parse(stored) : [];
-  });
 
-  useEffect(() => {
-    localStorage.setItem('wivvy-todo-list', JSON.stringify(todoList));
-  }, [todoList]);
+  const [todoList, setTodoList] = useState(() => loadFromStorage('wivvy-todo-list', []));
+  const [tasks, setTasks] = useState(() => loadFromStorage('wivvy-calendar-tasks', {}));
+  const [poolTasks, setPoolTasks] = useState(() => loadFromStorage('wivvy-pool-tasks', []));
 
-  // Load calendar tasks from localStorage
-  const [tasks, setTasks] = useState(() => {
-    try {
-      const stored = localStorage.getItem('wivvy-calendar-tasks');
-      return stored ? JSON.parse(stored) : {};
-    } catch (error) {
-      console.error('Error loading calendar tasks:', error);
-      return {};
-    }
-  });
-
-  // Load pool tasks from localStorage
-  const [poolTasks, setPoolTasks] = useState(() => {
-    try {
-      const stored = localStorage.getItem('wivvy-pool-tasks');
-      return stored ? JSON.parse(stored) : [];
-    } catch (error) {
-      console.error('Error loading pool tasks:', error);
-      return [];
-    }
-  });
-
-  // Save calendar tasks on change
-  useEffect(() => {
-    try {
-      localStorage.setItem('wivvy-calendar-tasks', JSON.stringify(tasks));
-    } catch (error) {
-      console.error('Error saving calendar tasks:', error);
-    }
-  }, [tasks]);
-
-  // Save pool tasks on change
-  useEffect(() => {
-    try {
-      localStorage.setItem('wivvy-pool-tasks', JSON.stringify(poolTasks));
-    } catch (error) {
-      console.error('Error saving pool tasks:', error);
-    }
-  }, [poolTasks]);
+  useEffect(() => saveToStorage('wivvy-todo-list', todoList), [todoList]);
+  useEffect(() => saveToStorage('wivvy-calendar-tasks', tasks), [tasks]);
+  useEffect(() => saveToStorage('wivvy-pool-tasks', poolTasks), [poolTasks]);
 
   const handleAddToPool = (task) => {
     const taskKey = `${task.type}-${task.title.toLowerCase().trim()}`;
-    if (!poolTasks.some(t => `${t.type}-${t.title.toLowerCase().trim()}` === taskKey)) {
-      const newTask = {
-        ...task,
-        id: taskKey // Use consistent ID format
-      };
-      setPoolTasks(prev => [...prev, newTask]);
+    const exists = poolTasks.some(
+      (t) => `${t.type}-${t.title.toLowerCase().trim()}` === taskKey
+    );
+    if (!exists) {
+      setPoolTasks(prev => [...prev, { ...task, id: taskKey }]);
     } else {
       alert('Duplicate task not allowed');
     }
   };
 
   const handleDeleteFromPool = (taskId) => {
-    // Remove from pool
     setPoolTasks(prev => prev.filter(t => t.id !== taskId));
-
-    // Also remove from all calendar dates
-    setTasks(prev => {
-      const updated = { ...prev };
-      for (const [dateKey, dayTasks] of Object.entries(prev)) {
-        const filtered = dayTasks.filter(task => {
-          // Check both the task ID and the constructed ID for backwards compatibility
-          const constructedId = `${task.type}-${task.title.toLowerCase().trim()}`;
-          return task.id !== taskId && constructedId !== taskId;
-        });
-        if (filtered.length > 0) {
-          updated[dateKey] = filtered;
-        } else {
-          delete updated[dateKey]; // Remove empty date entries
-        }
-      }
-      return updated;
-    });
   };
 
   const addTask = (date, taskType, title) => {
     const dateKey = formatDateKey(date);
-
-    // Use consistent ID format - check if it's from pool or new task
     const taskKey = `${taskType}-${title.toLowerCase().trim()}`;
     const isFromPool = poolTasks.some(t => t.id === taskKey);
 
     const newTask = {
-      id: isFromPool ? taskKey : `custom-${Date.now()}`, // Use pool ID if from pool, otherwise unique ID
+      id: isFromPool ? taskKey : `custom-${Date.now()}`,
       type: taskType,
-      title: title,
+      title,
       completed: false
     };
 
@@ -114,6 +53,7 @@ const CalendarView = () => {
       ...prev,
       [dateKey]: [...(prev[dateKey] || []), newTask]
     }));
+
     setShowTaskModal(false);
   };
 
@@ -136,28 +76,27 @@ const CalendarView = () => {
           onAddTask={handleAddToPool}
           onDeleteTask={handleDeleteFromPool}
         />
+
         <div className="container calendar-layout">
           <TodoList
             todos={todoList}
-            onToggle={(id) =>
+            onToggle={id =>
               setTodoList(prev =>
-                prev.map(todo => todo.id === id ? { ...todo, completed: !todo.completed } : todo)
+                prev.map(todo =>
+                  todo.id === id ? { ...todo, completed: !todo.completed } : todo
+                )
               )
             }
-            onDelete={(id) =>
-              setTodoList(prev => prev.filter(todo => todo.id !== id))
+            onDelete={id => setTodoList(prev => prev.filter(todo => todo.id !== id))}
+            onAdd={text =>
+              setTodoList(prev => [
+                ...prev,
+                { id: Date.now(), text, completed: false }
+              ])
             }
-            onAdd={(text) => {
-              const newTodo = {
-                id: Date.now(),
-                text,
-                completed: false
-              };
-              setTodoList(prev => [...prev, newTodo]);
-            }}
           />
 
-          {/* Calendar Section */}
+          {/* Calendar */}
           <div className="calendar-container">
             <div className="calendar-header">
               <button
@@ -182,15 +121,11 @@ const CalendarView = () => {
             </div>
 
             <div className="calendar-grid">
-              {/* Weekday Headers */}
               {dayNames.map(day => (
-                <div key={day} className="day-header">
-                  {day}
-                </div>
+                <div key={day} className="day-header">{day}</div>
               ))}
 
-              {/* Calendar Days */}
-              {calendarDays.map((date, index) => {
+              {calendarDays.map((date, idx) => {
                 const dateKey = formatDateKey(date);
                 const dayTasks = tasks[dateKey] || [];
                 const isCurrentMonth = date.getMonth() === selectedDate.getMonth();
@@ -198,46 +133,40 @@ const CalendarView = () => {
 
                 return (
                   <div
-                    key={index}
+                    key={idx}
                     className={`calendar-day ${isCurrentMonth ? 'current-month' : 'other-month'} ${isToday ? 'today' : ''}`}
-                    onClick={() => { setSelectedDate(date); setShowTaskModal(date) }}
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={(e) => {
-                      const task = JSON.parse(e.dataTransfer.getData('application/json'));
-                      const newTask = {
-                        ...task,
-                        id: Date.now()
-                      };
+                    onClick={() => setSelectedDate(date)}
+                    onDragOver={e => e.preventDefault()}
+                    onDrop={e => {
+                      const droppedTask = JSON.parse(e.dataTransfer.getData('application/json'));
                       const key = formatDateKey(date);
                       setTasks(prev => ({
                         ...prev,
-                        [key]: [...(prev[key] || []), newTask]
+                        [key]: [...(prev[key] || []), {
+                          ...droppedTask,
+                          id: `custom-${Date.now()}`
+                        }]
                       }));
                     }}
                   >
-
                     <div className="day-number">{date.getDate()}</div>
                     <div className="task-icons">
                       {dayTasks.slice(0, 3).map(task => {
-                        const IconComponent = taskIcons[task.type]?.icon;
-                        if (!IconComponent) {
-                          console.warn(`No icon found for task type: ${task.type}`);
-                          return null;
-                        }
-
+                        const Icon = taskIcons[task.type]?.icon;
                         return (
-                          <div
-                            key={task.id}
-                            className={`task-icon ${taskIcons[task.type]?.color || ''} ${task.completed ? 'completed' : ''
-                              }`}
-                            onClick={e => {
-                              e.stopPropagation();
-                              toggleTask(dateKey, task.id);
-                            }}
-                            title={task.title}
-                          >
-                            <IconComponent size={12} />
-                          </div>
+                          Icon && (
+                            <div
+                              key={task.id}
+                              className={`task-icon ${taskIcons[task.type]?.color || ''} ${task.completed ? 'completed' : ''}`}
+                              onClick={e => {
+                                e.stopPropagation();
+                                toggleTask(dateKey, task.id);
+                              }}
+                              title={task.title}
+                            >
+                              <Icon size={12} />
+                            </div>
+                          )
                         );
                       })}
                       {dayTasks.length > 3 && (
@@ -251,29 +180,31 @@ const CalendarView = () => {
               })}
             </div>
           </div>
+
           <CurrentDayView
             date={selectedDate}
             tasks={tasks[formatDateKey(selectedDate)] || []}
-            onToggle={(id) => toggleTask(formatDateKey(selectedDate), id)}
-            onDelete={(id) => {
+            onToggle={id => toggleTask(formatDateKey(selectedDate), id)}
+            onDelete={id => {
               const dateKey = formatDateKey(selectedDate);
               setTasks(prev => ({
                 ...prev,
                 [dateKey]: prev[dateKey].filter(t => t.id !== id)
               }));
             }}
+            onRequestAddTaskModal={() => setShowTaskModal(true)}
           />
         </div>
 
-        {/* Task Modal */}
+        {/* Optional modal (unused now) */}
         {showTaskModal && (
           <TaskModal
-            showDate={showTaskModal}
+            selectedDate={selectedDate}
             selectedTaskType={selectedTaskType}
             setSelectedTaskType={setSelectedTaskType}
             addTask={addTask}
             onClose={() => setShowTaskModal(false)}
-            poolTasks={poolTasks} // Pass pool tasks to modal for selection
+            poolTasks={poolTasks}
           />
         )}
       </div>
