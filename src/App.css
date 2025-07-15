@@ -8,9 +8,7 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-   
-  }
+  .App-logo {}
 }
 
 .App-header {
@@ -23,6 +21,7 @@
   font-size: calc(10px + 2vmin);
   color: white;
 }
+
 .App-link {
   color: #61dafb;
 }
@@ -31,10 +30,12 @@
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
 }
+
 /* App.css */
 * {
   margin: 0;
@@ -106,13 +107,36 @@ body {
   animation: sparkle 2s infinite;
 }
 
-.sparkle:nth-child(1) { animation-delay: 0s; top: 0; right: 0; }
-.sparkle:nth-child(2) { animation-delay: 0.7s; top: 10px; right: 20px; }
-.sparkle:nth-child(3) { animation-delay: 1.4s; top: -5px; right: 15px; }
+.sparkle:nth-child(1) {
+  animation-delay: 0s;
+  top: 0;
+  right: 0;
+}
+
+.sparkle:nth-child(2) {
+  animation-delay: 0.7s;
+  top: 10px;
+  right: 20px;
+}
+
+.sparkle:nth-child(3) {
+  animation-delay: 1.4s;
+  top: -5px;
+  right: 15px;
+}
 
 @keyframes sparkle {
-  0%, 100% { opacity: 0; transform: scale(0.5); }
-  50% { opacity: 1; transform: scale(1); }
+
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .logo h1 {
@@ -216,6 +240,15 @@ body {
   margin-bottom: 4px;
 }
 
+.delete-btn {
+  margin-left: 8px;
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 16px;
+  cursor: pointer;
+}
+
 .task-icons {
   display: flex;
   flex-wrap: wrap;
@@ -242,12 +275,13 @@ body {
   font-size: 10px;
   color: #6b7280;
 }
+
 .task-pool {
   background: white;
   border-radius: 16px;
   padding: 20px;
   margin-bottom: 30px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .task-pool h3 {
@@ -286,16 +320,55 @@ body {
 
 
 /* Task Icon Colors */
-.task-icon.blue { background: #dbeafe; color: #3b82f6; }
-.task-icon.green { background: #dcfce7; color: #16a34a; }
-.task-icon.purple { background: #f3e8ff; color: #9333ea; }
-.task-icon.amber { background: #fef3c7; color: #d97706; }
-.task-icon.red { background: #fee2e2; color: #dc2626; }
-.task-icon.gray { background: #f3f4f6; color: #6b7280; }
-.task-icon.indigo { background: #e0e7ff; color: #6366f1; }
-.task-icon.pink { background: #fce7f3; color: #ec4899; }
-.task-icon.orange { background: #fed7aa; color: #ea580c; }
-.task-icon.teal { background: #ccfbf1; color: #0d9488; }
+.task-icon.blue {
+  background: #dbeafe;
+  color: #3b82f6;
+}
+
+.task-icon.green {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.task-icon.purple {
+  background: #f3e8ff;
+  color: #9333ea;
+}
+
+.task-icon.amber {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.task-icon.red {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.task-icon.gray {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.task-icon.indigo {
+  background: #e0e7ff;
+  color: #6366f1;
+}
+
+.task-icon.pink {
+  background: #fce7f3;
+  color: #ec4899;
+}
+
+.task-icon.orange {
+  background: #fed7aa;
+  color: #ea580c;
+}
+
+.task-icon.teal {
+  background: #ccfbf1;
+  color: #0d9488;
+}
 
 /* Modal */
 .modal-overlay {
@@ -367,16 +440,55 @@ body {
 }
 
 /* Icon Button Colors */
-.icon-button.blue.selected { border-color: #3b82f6; background: #eff6ff; }
-.icon-button.green.selected { border-color: #16a34a; background: #f0fdf4; }
-.icon-button.purple.selected { border-color: #9333ea; background: #faf5ff; }
-.icon-button.amber.selected { border-color: #d97706; background: #fffbeb; }
-.icon-button.red.selected { border-color: #dc2626; background: #fef2f2; }
-.icon-button.gray.selected { border-color: #6b7280; background: #f9fafb; }
-.icon-button.indigo.selected { border-color: #6366f1; background: #eef2ff; }
-.icon-button.pink.selected { border-color: #ec4899; background: #fdf2f8; }
-.icon-button.orange.selected { border-color: #ea580c; background: #fff7ed; }
-.icon-button.teal.selected { border-color: #0d9488; background: #f0fdfa; }
+.icon-button.blue.selected {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.icon-button.green.selected {
+  border-color: #16a34a;
+  background: #f0fdf4;
+}
+
+.icon-button.purple.selected {
+  border-color: #9333ea;
+  background: #faf5ff;
+}
+
+.icon-button.amber.selected {
+  border-color: #d97706;
+  background: #fffbeb;
+}
+
+.icon-button.red.selected {
+  border-color: #dc2626;
+  background: #fef2f2;
+}
+
+.icon-button.gray.selected {
+  border-color: #6b7280;
+  background: #f9fafb;
+}
+
+.icon-button.indigo.selected {
+  border-color: #6366f1;
+  background: #eef2ff;
+}
+
+.icon-button.pink.selected {
+  border-color: #ec4899;
+  background: #fdf2f8;
+}
+
+.icon-button.orange.selected {
+  border-color: #ea580c;
+  background: #fff7ed;
+}
+
+.icon-button.teal.selected {
+  border-color: #0d9488;
+  background: #f0fdfa;
+}
 
 .task-input {
   width: 100%;
@@ -433,29 +545,29 @@ body {
   .app {
     padding: 10px;
   }
-  
+
   .calendar-container {
     padding: 20px;
   }
-  
+
   .logo {
     padding: 20px;
   }
-  
+
   .logo h1 {
     font-size: 2rem;
   }
-  
+
   .calendar-day {
     min-height: 60px;
     padding: 4px;
   }
-  
+
   .task-icon {
     width: 16px;
     height: 16px;
   }
-  
+
   .icon-grid {
     grid-template-columns: repeat(3, 1fr);
   }
@@ -465,11 +577,11 @@ body {
   .month-title {
     font-size: 1.4rem;
   }
-  
+
   .calendar-day {
     min-height: 50px;
   }
-  
+
   .day-number {
     font-size: 0.8rem;
   }

@@ -1,79 +1,100 @@
-import React, { useState } from 'react';
-import { Calendar, Plus, Coffee, Dumbbell, BookOpen, Briefcase, Heart, Home, Car, ShoppingCart, Users, Music } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
 import TaskModal from './TaskModal';
 import TaskPool from './TaskPool';
+import { taskIcons, dayNames, monthNames } from '../assets/consts';
+import { formatDateKey, generateCalendarDays } from '../assets/utils';
 import '../App.css';
 
-const CalanderView = () => {
+const CalendarView = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [tasks, setTasks] = useState({});
   const [showTaskModal, setShowTaskModal] = useState(false);
-  const [poolTasks, setPoolTasks] = useState([]);
-const [calendarTasks, setCalendarTasks] = useState({});
-
-const handleAddToPool = (task) => {
-  if (!poolTasks.some(t => t.title === task.title && t.type === task.type)) {
-    setPoolTasks(prev => [...prev, task]);
-  } else {
-    alert('Duplicate task not allowed');
-  }
-};
-
-const handleDeleteFromPool = (taskId) => {
-  setPoolTasks(prev => prev.filter(t => t.id !== taskId));
-
-  // Also delete from calendar
-  const updated = {};
-  for (const [dateKey, tasks] of Object.entries(calendarTasks)) {
-    const filtered = tasks.filter(task => task.id !== taskId);
-    if (filtered.length > 0) updated[dateKey] = filtered;
-  }
-  setCalendarTasks(updated);
-};
-
-
-  // Available task icons
-  const taskIcons = {
-    work: { icon: Briefcase, color: 'blue' },
-    exercise: { icon: Dumbbell, color: 'green' },
-    study: { icon: BookOpen, color: 'purple' },
-    coffee: { icon: Coffee, color: 'amber' },
-    health: { icon: Heart, color: 'red' },
-    home: { icon: Home, color: 'gray' },
-    travel: { icon: Car, color: 'indigo' },
-    shopping: { icon: ShoppingCart, color: 'pink' },
-    social: { icon: Users, color: 'orange' },
-    music: { icon: Music, color: 'teal' }
-  };
-
   const [selectedTaskType, setSelectedTaskType] = useState('work');
 
-  // Generate calendar days
-  const generateCalendarDays = () => {
-    const year = selectedDate.getFullYear();
-    const month = selectedDate.getMonth();
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const startDate = new Date(firstDay);
-    startDate.setDate(startDate.getDate() - firstDay.getDay());
-
-    const days = [];
-    for (let i = 0; i < 42; i++) {
-      const date = new Date(startDate);
-      date.setDate(startDate.getDate() + i);
-      days.push(date);
+  // Load calendar tasks from localStorage
+  const [tasks, setTasks] = useState(() => {
+    try {
+      const stored = localStorage.getItem('wivvy-calendar-tasks');
+      return stored ? JSON.parse(stored) : {};
+    } catch (error) {
+      console.error('Error loading calendar tasks:', error);
+      return {};
     }
-    return days;
+  });
+
+  // Load pool tasks from localStorage
+  const [poolTasks, setPoolTasks] = useState(() => {
+    try {
+      const stored = localStorage.getItem('wivvy-pool-tasks');
+      return stored ? JSON.parse(stored) : [];
+    } catch (error) {
+      console.error('Error loading pool tasks:', error);
+      return [];
+    }
+  });
+
+  // Save calendar tasks on change
+  useEffect(() => {
+    try {
+      localStorage.setItem('wivvy-calendar-tasks', JSON.stringify(tasks));
+    } catch (error) {
+      console.error('Error saving calendar tasks:', error);
+    }
+  }, [tasks]);
+
+  // Save pool tasks on change
+  useEffect(() => {
+    try {
+      localStorage.setItem('wivvy-pool-tasks', JSON.stringify(poolTasks));
+    } catch (error) {
+      console.error('Error saving pool tasks:', error);
+    }
+  }, [poolTasks]);
+
+  const handleAddToPool = (task) => {
+    const taskKey = `${task.type}-${task.title.toLowerCase().trim()}`;
+    if (!poolTasks.some(t => `${t.type}-${t.title.toLowerCase().trim()}` === taskKey)) {
+      const newTask = {
+        ...task,
+        id: taskKey // Use consistent ID format
+      };
+      setPoolTasks(prev => [...prev, newTask]);
+    } else {
+      alert('Duplicate task not allowed');
+    }
   };
 
-  const formatDateKey = (date) => {
-    return date.toISOString().split('T')[0];
+  const handleDeleteFromPool = (taskId) => {
+    // Remove from pool
+    setPoolTasks(prev => prev.filter(t => t.id !== taskId));
+
+    // Also remove from all calendar dates
+    setTasks(prev => {
+      const updated = { ...prev };
+      for (const [dateKey, dayTasks] of Object.entries(prev)) {
+        const filtered = dayTasks.filter(task => {
+          // Check both the task ID and the constructed ID for backwards compatibility
+          const constructedId = `${task.type}-${task.title.toLowerCase().trim()}`;
+          return task.id !== taskId && constructedId !== taskId;
+        });
+        if (filtered.length > 0) {
+          updated[dateKey] = filtered;
+        } else {
+          delete updated[dateKey]; // Remove empty date entries
+        }
+      }
+      return updated;
+    });
   };
 
   const addTask = (date, taskType, title) => {
     const dateKey = formatDateKey(date);
+
+    // Use consistent ID format - check if it's from pool or new task
+    const taskKey = `${taskType}-${title.toLowerCase().trim()}`;
+    const isFromPool = poolTasks.some(t => t.id === taskKey);
+
     const newTask = {
-      id: Date.now(),
+      id: isFromPool ? taskKey : `custom-${Date.now()}`, // Use pool ID if from pool, otherwise unique ID
       type: taskType,
       title: title,
       completed: false
@@ -95,20 +116,49 @@ const handleDeleteFromPool = (taskId) => {
     }));
   };
 
-  const calendarDays = generateCalendarDays();
-  const monthNames = ["January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December"];
+  // Add a function to handle dragging tasks from pool to calendar
+  const handleDropTaskOnDate = (date, poolTask) => {
+    const dateKey = formatDateKey(date);
+
+    // Check if task already exists on this date
+    const dayTasks = tasks[dateKey] || [];
+    const taskExists = dayTasks.some(task =>
+      task.id === poolTask.id ||
+      (task.type === poolTask.type && task.title === poolTask.title)
+    );
+
+    if (!taskExists) {
+      const newTask = {
+        ...poolTask,
+        completed: false
+      };
+
+      setTasks(prev => ({
+        ...prev,
+        [dateKey]: [...(prev[dateKey] || []), newTask]
+      }));
+    }
+  };
+
+  const calendarDays = generateCalendarDays(selectedDate);
 
   return (
     <div className="app">
       <div className="container">
-        <TaskPool /> {/* NEW POOL */}
+        <TaskPool
+          poolTasks={poolTasks}
+          onAddTask={handleAddToPool}
+          onDeleteTask={handleDeleteFromPool}
+        />
+
         {/* Calendar Section */}
         <div className="calendar-container">
           <div className="calendar-header">
             <button
               className="nav-button"
-              onClick={() => setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() - 1))}
+              onClick={() =>
+                setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() - 1))
+              }
             >
               ←
             </button>
@@ -117,22 +167,23 @@ const handleDeleteFromPool = (taskId) => {
             </h2>
             <button
               className="nav-button"
-              onClick={() => setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1))}
+              onClick={() =>
+                setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1))
+              }
             >
               →
             </button>
           </div>
 
-          {/* Calendar Grid */}
           <div className="calendar-grid">
-            {/* Day headers */}
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+            {/* Weekday Headers */}
+            {dayNames.map(day => (
               <div key={day} className="day-header">
                 {day}
               </div>
             ))}
 
-            {/* Calendar days */}
+            {/* Calendar Days */}
             {calendarDays.map((date, index) => {
               const dateKey = formatDateKey(date);
               const dayTasks = tasks[dateKey] || [];
@@ -142,18 +193,38 @@ const handleDeleteFromPool = (taskId) => {
               return (
                 <div
                   key={index}
-                  className={`calendar-day ${isCurrentMonth ? 'current-month' : 'other-month'} ${isToday ? 'today' : ''}`}
+                  className={`calendar-day ${isCurrentMonth ? 'current-month' : 'other-month'} ${isToday ? 'today' : ''
+                    }`}
                   onClick={() => setShowTaskModal(date)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    const poolTaskData = e.dataTransfer.getData('text/plain');
+                    if (poolTaskData) {
+                      try {
+                        const poolTask = JSON.parse(poolTaskData);
+                        handleDropTaskOnDate(date, poolTask);
+                      } catch (error) {
+                        console.error('Error parsing dropped task data:', error);
+                      }
+                    }
+                  }}
+                  onDragOver={(e) => e.preventDefault()}
                 >
                   <div className="day-number">{date.getDate()}</div>
                   <div className="task-icons">
                     {dayTasks.slice(0, 3).map(task => {
-                      const IconComponent = taskIcons[task.type].icon;
+                      const IconComponent = taskIcons[task.type]?.icon;
+                      if (!IconComponent) {
+                        console.warn(`No icon found for task type: ${task.type}`);
+                        return null;
+                      }
+
                       return (
                         <div
                           key={task.id}
-                          className={`task-icon ${taskIcons[task.type].color} ${task.completed ? 'completed' : ''}`}
-                          onClick={(e) => {
+                          className={`task-icon ${taskIcons[task.type]?.color || ''} ${task.completed ? 'completed' : ''
+                            }`}
+                          onClick={e => {
                             e.stopPropagation();
                             toggleTask(dateKey, task.id);
                           }}
@@ -183,6 +254,7 @@ const handleDeleteFromPool = (taskId) => {
             setSelectedTaskType={setSelectedTaskType}
             addTask={addTask}
             onClose={() => setShowTaskModal(false)}
+            poolTasks={poolTasks} // Pass pool tasks to modal for selection
           />
         )}
       </div>
@@ -190,4 +262,4 @@ const handleDeleteFromPool = (taskId) => {
   );
 };
 
-export default CalanderView;
+export default CalendarView;
