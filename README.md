@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="src\wivvy-bird-librarian.png" alt="Wivvy mascot" width="120" />
+  <img src="src\wivvy-bird-librarian.png"  width="400" height="400" />
 </p>
 
 <h1 align="center">Wivvy</h1>
