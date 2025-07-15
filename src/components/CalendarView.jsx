@@ -11,6 +11,14 @@ const CalendarView = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [selectedTaskType, setSelectedTaskType] = useState('work');
+  const [todoList, setTodoList] = useState(() => {
+    const stored = localStorage.getItem('wivvy-todo-list');
+    return stored ? JSON.parse(stored) : [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('wivvy-todo-list', JSON.stringify(todoList));
+  }, [todoList]);
 
   // Load calendar tasks from localStorage
   const [tasks, setTasks] = useState(() => {
@@ -118,30 +126,6 @@ const CalendarView = () => {
     }));
   };
 
-  // Add a function to handle dragging tasks from pool to calendar
-  const handleDropTaskOnDate = (date, poolTask) => {
-    const dateKey = formatDateKey(date);
-
-    // Check if task already exists on this date
-    const dayTasks = tasks[dateKey] || [];
-    const taskExists = dayTasks.some(task =>
-      task.id === poolTask.id ||
-      (task.type === poolTask.type && task.title === poolTask.title)
-    );
-
-    if (!taskExists) {
-      const newTask = {
-        ...poolTask,
-        completed: false
-      };
-
-      setTasks(prev => ({
-        ...prev,
-        [dateKey]: [...(prev[dateKey] || []), newTask]
-      }));
-    }
-  };
-
   const calendarDays = generateCalendarDays(selectedDate);
 
   return (
@@ -153,7 +137,26 @@ const CalendarView = () => {
           onDeleteTask={handleDeleteFromPool}
         />
         <div className="container calendar-layout">
-          <TodoList tasks={tasks} toggleTask={toggleTask} />
+          <TodoList
+            todos={todoList}
+            onToggle={(id) =>
+              setTodoList(prev =>
+                prev.map(todo => todo.id === id ? { ...todo, completed: !todo.completed } : todo)
+              )
+            }
+            onDelete={(id) =>
+              setTodoList(prev => prev.filter(todo => todo.id !== id))
+            }
+            onAdd={(text) => {
+              const newTodo = {
+                id: Date.now(),
+                text,
+                completed: false
+              };
+              setTodoList(prev => [...prev, newTodo]);
+            }}
+          />
+
           {/* Calendar Section */}
           <div className="calendar-container">
             <div className="calendar-header">

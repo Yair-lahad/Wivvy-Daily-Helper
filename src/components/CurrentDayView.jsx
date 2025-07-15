@@ -6,7 +6,7 @@ const CurrentDayView = ({ date, tasks, onToggle, onDelete }) => {
   const dateStr = date.toDateString();
   return (
     <div className="current-day-view">
-      <h3>Tasks for {dateStr}</h3>
+      <h3> {dateStr}</h3>
       {tasks.length === 0 ? (
         <p>No tasks</p>
       ) : (

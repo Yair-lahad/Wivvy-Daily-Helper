@@ -1,25 +1,37 @@
-import React from 'react';
-import '../App.css'; // optional if you want to style separately
+import React, { useState } from 'react';
 
-const TodoList = ({ tasks, toggleTask }) => {
-  const flatTasks = Object.entries(tasks).flatMap(([date, dayTasks]) =>
-    dayTasks.map(task => ({ ...task, date }))
-  );
+const TodoList = ({ todos, onToggle, onDelete, onAdd }) => {
+  const [input, setInput] = useState('');
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (input.trim()) {
+      onAdd(input.trim());
+      setInput('');
+    }
+  };
 
   return (
     <div className="todo-list">
-      <h3>To-Do</h3>
+      <h3>Genaral To-Do List</h3>
+      <form onSubmit={handleSubmit}>
+        <input
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          placeholder="Add new task..."
+        />
+      </form>
       <ul>
-        {flatTasks.length === 0 && <li className="empty">No tasks yet.</li>}
-        {flatTasks.map(task => (
-          <li key={task.id} className={task.completed ? 'completed' : ''}>
+        {todos.length === 0 && <li className="empty">No to-dos</li>}
+        {todos.map(todo => (
+          <li key={todo.id} className={todo.completed ? 'completed' : ''}>
             <input
               type="checkbox"
-              checked={task.completed}
-              onChange={() => toggleTask(task.date, task.id)}
+              checked={todo.completed}
+              onChange={() => onToggle(todo.id)}
             />
-            <span>{task.title}</span>
-            <small>{task.date}</small>
+            <span>{todo.text}</span>
+            <button onClick={() => onDelete(todo.id)}>✕</button>
           </li>
         ))}
       </ul>
